@@ -200,12 +200,17 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
-  String city = "Bangalore";
+  final TextEditingController cityController =
+  TextEditingController(text: "Bangalore");
+
+  String city = "";
   String temperature = "";
   String weather = "";
   bool isLoading = false;
 
   Future<void> getWeather() async {
+    if (cityController.text.trim().isEmpty) return;
+
     setState(() {
       isLoading = true;
     });
@@ -214,7 +219,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
     final response = await http.get(
       Uri.parse(
-        "https://api.openweathermap.org/data/2.5/weather?q=$city&appid=$apiKey&units=metric",
+        "https://api.openweathermap.org/data/2.5/weather?q=${cityController.text.trim()}&appid=$apiKey&units=metric",
       ),
     );
 
@@ -222,12 +227,16 @@ class _WeatherScreenState extends State<WeatherScreen> {
       final data = jsonDecode(response.body);
 
       setState(() {
+        city = data["name"];
         temperature = data["main"]["temp"].toString();
         weather = data["weather"][0]["main"];
         isLoading = false;
       });
     } else {
       setState(() {
+        city = "City Not Found";
+        temperature = "";
+        weather = "";
         isLoading = false;
       });
     }
@@ -241,53 +250,77 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: isLoading
-          ? const CircularProgressIndicator()
-          : Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
         children: [
-          const Icon(
-            Icons.cloud,
-            size: 100,
-            color: Colors.blue,
-          ),
-
-          const SizedBox(height: 20),
-
-          Text(
-            city,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+          TextField(
+            controller: cityController,
+            decoration: InputDecoration(
+              hintText: "Enter City Name",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.location_city),
             ),
           ),
 
-          const SizedBox(height: 10),
-
-          Text(
-            "$temperature°C",
-            style: const TextStyle(
-              fontSize: 35,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            weather,
-            style: const TextStyle(
-              fontSize: 22,
-            ),
-          ),
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 15),
 
           ElevatedButton(
             onPressed: getWeather,
-            child: const Text("Refresh Weather"),
+            child: const Text("Get Weather"),
           ),
+
+          const SizedBox(height: 30),
+
+          if (isLoading)
+            const CircularProgressIndicator()
+          else if (city.isNotEmpty)
+            Card(
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.cloud,
+                      size: 80,
+                      color: Colors.blue,
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    Text(
+                      city,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Text(
+                      "$temperature°C",
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Text(
+                      weather,
+                      style: const TextStyle(
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
